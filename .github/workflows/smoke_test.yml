@@ -4,14 +4,34 @@ on: [push]
 jobs:
   test:
     runs-on: ubuntu-latest
-    name: A job to install MicroK8s
+    name: Install MicroK8s
     steps:
     - uses: balchua/microk8s-actions@v0.3.2
       with:
         channel: '1.26/stable'
         addons: '["dns", "rbac", "hostpath-storage", "registry"]'
-    - name: Test MicroK8s
-      id: myactions
+
+    # Install the local chart repository
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+    
+    - name: Set up Helm
+      uses: azure/setup-helm@v4.2.0
+      with:
+        version: v3.14.4
+    
+    - name: Build and Install Helm Chart
       run: |
-        kubectl get no
-        kubectl get pods -A -o wide
+        ls
+        helm dependency build charts/temporal
+        helm install local-charts charts/temporal
+      
+    - name: Wait for Temporal Server to be ready
+      run: |
+        kubectl wait --for=condition=available --timeout=600s deployment/temporal-frontend
+
+    - name: Run Smoke Tests
+      run: |
+        kubectl exec -it deployment/temporal-frontend -- /bin/sh -c "curl -f http://localhost:8080/healthz || exit 1"
