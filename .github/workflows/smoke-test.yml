@@ -38,11 +38,25 @@ jobs:
     - name: Wait for Temporal Server to be ready
       run: |
         kubectl --namespace=default get pods -l "app.kubernetes.io/instance=temporal"
-        # kubectl wait --for=condition=available --timeout=600s deployment/temporal-frontend
-        sleep 60
-        kubectl --namespace=default get pods -l "app.kubernetes.io/instance=temporal"
-        kubectl --namespace=default get pods pvc
+        kubectl wait --for=condition=available --timeout=600s deployment/temporal-frontend
+      continue-on-error: true
+    
+    - name: Print debug info
+      run: |
+        kubectl get all --namespace=default
+        kubectl get pvc --namespace=default
+        kubectl get events --namespace=default --sort-by='.metadata.creationTimestamp'
+        for pod in $(kubectl get pods --namespace=default -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}'); do
+          namespace=$(echo $pod | awk '{print $1}')
+          name=$(echo $pod | awk '{print $2}')
+          echo "Describing pod $name in namespace $namespace"
+          kubectl describe pod $name -n $namespace
+          echo "Logs for pod $name in namespace $namespace"
+          kubectl logs $name -n $namespace --all-containers=true --tail=100
+          echo "----------------------------------------"
+        done
 
     - name: Run Smoke Tests
       run: |
         kubectl exec -it deployment/temporal-frontend -- /bin/sh -c "curl -f http://localhost:8080/healthz || exit 1"
+
