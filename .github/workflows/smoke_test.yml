@@ -32,12 +32,12 @@ jobs:
 
     - name: Build and Install Helm Chart
       run: |
-        ls
         helm dependency build charts/temporal
-        helm install local-charts charts/temporal
+        helm install temporal charts/temporal
       
     - name: Wait for Temporal Server to be ready
       run: |
+        kubectl --namespace=default get pods -l "app.kubernetes.io/instance=local-charts"
         kubectl wait --for=condition=available --timeout=600s deployment/temporal-frontend
 
     - name: Run Smoke Tests
