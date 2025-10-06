@@ -1,4 +1,4 @@
-name: Test Microk8s
+name: Smoke Test image creation
 on: [push]
 
 jobs:
@@ -22,6 +22,14 @@ jobs:
       with:
         version: v3.14.4
     
+    - name: Install helm charts
+      run: |
+        helm repo add incubator https://charts.helm.sh/incubator
+        helm repo add prometheus https://prometheus-community.github.io/helm-charts
+        helm repo add elasticsearch https://helm.elastic.co
+        helm repo add grafana https://grafana.github.io/helm-charts
+        helm repo update
+
     - name: Build and Install Helm Chart
       run: |
         ls
