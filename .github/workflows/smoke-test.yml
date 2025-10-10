@@ -46,6 +46,17 @@ jobs:
       run: |
         kubectl get all
 
+        echo "--- --- ---"
+        echo "elasticsearch describe:"
+        kubectl describe StatefulSet/elasticsearch-master
+        echo "--- --- ---"
+        
+        echo "--- --- ---"
+        echo "elasticsearch Events:"
+        kubectl events StatefulSet/elasticsearch-master
+        echo "--- --- ---"
+
+        echo "--- --- ---"
         echo "elasticsearch Logs:"
         kubectl logs StatefulSet/elasticsearch-master
         echo "--- --- ---"
