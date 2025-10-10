@@ -29,14 +29,11 @@ jobs:
         helm repo add elasticsearch https://helm.elastic.co
         helm repo add grafana https://grafana.github.io/helm-charts
         helm repo update
-
-    - name: Print Helm Template
-      run: |
-        helm template charts/temporal
     
     - name: Build and Install Helm Chart
       run: |
         helm dependency build charts/temporal
+        helm template charts/temporal
         helm install temporal charts/temporal
       
     - name: Wait for Temporal Server to be ready
@@ -47,39 +44,12 @@ jobs:
     
     - name: Print debug info
       run: |
-        echo "Pods in default namespace:"
-        kubectl get all --namespace=default
-        echo "--- --- --- --- --- --- --- --- --- ---"
-        echo "Services in default namespace:"
-        kubectl get pvc --namespace=default
-        echo "--- --- --- --- --- --- --- --- --- ---"
-        echo "Services in default namespace:"
-        kubectl get events --namespace=default --sort-by='.metadata.creationTimestamp'
-        echo "--- --- --- --- --- --- --- --- --- ---"
+        kubectl get all
 
-        echo "Describing and getting logs for all pods in default namespace:"
-        for pod in $(kubectl get pods --namespace=default -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}'); do
-          namespace=$(echo $pod | awk '{print $1}')
-          name=$(echo $pod | awk '{print $2}')
-          echo "Describing pod $name in namespace $namespace"
-          kubectl describe pod $name -n $namespace
-          echo "Logs for pod $name in namespace $namespace"
-          kubectl logs $name -n $namespace --all-containers=true --tail=100
-        done
-        echo "--- --- --- --- --- --- --- --- --- ---"
-
-        echo "Describing and getting logs for jobs in default namespace:"
-        for job in $(kubectl get jobs --namespace=default -o jsonpath='{range .items[*]}{.metadata.namespace}{" "}{.metadata.name}{"\n"}{end}'); do
-          namespace=$(echo $job | awk '{print $1}')
-          name=$(echo $job | awk '{print $2}')
-          echo "Describing job $name in namespace $namespace"
-          kubectl describe job $name -n $namespace
-          echo "Logs for job $name in namespace $namespace"
-          kubectl logs job/$name -n $namespace --all-containers=true --tail=100
-        done
-        echo "--- --- --- --- --- --- --- --- --- ---"
+        echo "elasticsearch Logs:"
+        kubectl logs StatefulSet/elasticsearch-master
+        echo "--- --- ---"
 
     - name: Run Smoke Tests
       run: |
         kubectl exec -it deployment/temporal-frontend -- /bin/sh -c "curl -f http://localhost:8080/healthz || exit 1"
-
