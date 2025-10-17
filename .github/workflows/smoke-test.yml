@@ -34,7 +34,7 @@ jobs:
       run: |
         helm dependency build charts/temporal
         helm template charts/temporal
-        helm install temporal charts/temporal --set elasticsearch.replicas=1
+        helm install temporal charts/temporal --set elasticsearch.enabled=false
       
     - name: Wait for Temporal Server to be ready
       run: |
