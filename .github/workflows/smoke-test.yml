@@ -33,19 +33,27 @@ jobs:
     - name: Build and Install Helm Chart
       run: |
         helm dependency build charts/temporal
-        helm template charts/temporal
+        helm template charts/temporal --set elasticsearch.enabled=false
         helm install temporal charts/temporal --set elasticsearch.enabled=false
       
     - name: Wait for Temporal Server to be ready
       run: |
         kubectl --namespace=default get pods -l "app.kubernetes.io/instance=temporal"
-        kubectl wait --for=condition=available --timeout=900s deployment/temporal-frontend
+        kubectl wait --for=condition=available --timeout=600s statefulset/temporal-cassandra
+        # kubectl wait --for=condition=available --timeout=600s deployment/temporal-frontend
       continue-on-error: true
     
-    - name: Print debug info
+    - name: Print deployment info
       run: |
         kubectl get all
+
+        echo "---"
+
+        kubectl logs job/temporal-schema-1 --all-containers=true
+
+        echo "---"
 
     - name: Run Smoke Tests
       run: |
         kubectl exec -it deployment/temporal-frontend -- /bin/sh -c "curl -f http://localhost:8080/healthz || exit 1"
+        kubectl exec -it deployment/temporal-admintools -- /bin/sh -c "temporal operator cluster health" || exit 1
